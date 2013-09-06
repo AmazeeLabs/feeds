@@ -129,5 +129,15 @@ function file_feeds_set_target($source, $entity, $target, $value) {
     $delta++;
   }
 
+  // If some files were not downloaded: ignore them to not provoke SQL error.
+  foreach ($field[LANGUAGE_NONE] as $delta => $value) {
+    if (empty($value['fid'])) {
+      unset($field[LANGUAGE_NONE][$delta]);
+    }
+  }
+  if (empty($field[LANGUAGE_NONE])) {
+    $field = array();
+  }
+
   $entity->$field_name = $field;
 }
