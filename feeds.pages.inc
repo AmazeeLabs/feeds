@@ -293,6 +293,7 @@ function feeds_source_status($source) {
   }
   $v['imported'] = $source->imported;
   $v['count'] = $source->itemCount();
+  $v['feed_nid'] = $source->feed_nid;
   if (!empty($v)) {
     return theme('feeds_source_status', $v);
   }
