@@ -293,13 +293,18 @@ class FeedsSource extends FeedsConfigurable {
     $job = array(
       'type' => $this->id,
       'id' => $this->feed_nid,
-      'period' => $period,
       'periodic' => TRUE,
     );
     if ($period == FEEDS_SCHEDULE_NEVER && $this->progressImporting() === FEEDS_BATCH_COMPLETE) {
       JobScheduler::get('feeds_source_import')->remove($job);
     }
     elseif ($this->progressImporting() === FEEDS_BATCH_COMPLETE) {
+      if ($period == FEEDS_SCHEDULE_CRONTAB) {
+        $job['crontab'] = $this->importer->config['import_crontab'];
+      }
+      else {
+        $job['period'] = $period;
+      }
       JobScheduler::get('feeds_source_import')->set($job);
     }
     else {
