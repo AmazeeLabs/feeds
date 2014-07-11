@@ -44,7 +44,7 @@ function feeds_cron() {
   if ($importers = feeds_reschedule()) {
     foreach ($importers as $id) {
       feeds_importer($id)->schedule();
-      $rows = db_query("SELECT feed_nid FROM {feeds_source} WHERE id = :id", array(':id' => $id));
+      $rows = db_query("SELECT fs.feed_nid FROM {feeds_source} fs LEFT JOIN {node} n ON n.nid = fs.feed_nid WHERE id = :id AND (fs.feed_nid = 0 OR n.status = 1)", array(':id' => $id));
       foreach ($rows as $row) {
         feeds_source($id, $row->feed_nid)->schedule();
       }
