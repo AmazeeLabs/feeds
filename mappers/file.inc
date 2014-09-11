@@ -87,6 +87,10 @@ function file_feeds_set_target($source, $entity, $target, array $values) {
   $field = isset($entity->$field_name) ? $entity->$field_name : array(LANGUAGE_NONE => array());
   $delta = 0;
   foreach ($values as $v) {
+    if (empty($v)) {
+      continue;
+    }
+
     if ($info['cardinality'] == $delta) {
       break;
     }
