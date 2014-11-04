@@ -9,6 +9,8 @@
 define('FEEDS_REQUEST_TIME', time());
 // Do not schedule a feed for refresh.
 define('FEEDS_SCHEDULE_NEVER', -1);
+// Use crontab syntax for feeds scheduling.
+define('FEEDS_SCHEDULE_CRONTAB', -2);
 // Never expire feed items.
 define('FEEDS_EXPIRE_NEVER', -1);
 // An object that is not persistent. Compare EXPORT_IN_DATABASE, EXPORT_IN_CODE.

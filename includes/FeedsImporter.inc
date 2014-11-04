@@ -196,6 +196,7 @@ class FeedsImporter extends FeedsConfigurable {
       'update' => 0,
       'import_period' => 1800, // Refresh every 30 minutes by default.
       'expire_period' => 3600, // Expire every hour by default, this is a hidden setting.
+      'import_crontab' => NULL, // Used if import_period is FEEDS_SCHEDULE_CRONTAB
       'import_on_create' => TRUE, // Import on submission.
       'process_in_background' => FALSE,
     );
@@ -239,13 +240,28 @@ class FeedsImporter extends FeedsConfigurable {
     $period = array(
       FEEDS_SCHEDULE_NEVER => t('Off'),
       0 => t('As often as possible'),
-    ) + $period;
+    ) + $period + array(
+      FEEDS_SCHEDULE_CRONTAB => t('Using crontab syntax'),
+    );
     $form['import_period'] = array(
       '#type' => 'select',
       '#title' => t('Periodic import'),
       '#options' => $period,
       '#description' => t('Choose how often a source should be imported periodically.') . $cron_required,
       '#default_value' => $config['import_period'],
+    );
+    $form['import_crontab'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Cron tab'),
+      '#description' => t('Unix-style crontab line with: <i>minutes</i> <i>hours</i> <i>day-of-month</i> <i>month</i> <i>day-of-week</i>. Read <a href=@man-crontab>more about crontab</a>.', array('@man-crontab' => url('http://linux.die.net/man/5/crontab'))),
+      '#default_value' => $config['import_crontab'],
+      '#states' => array(
+        'visible' => array(
+          'select[name="import_period"]' => array(
+            'value' => FEEDS_SCHEDULE_CRONTAB,
+          ),
+        ),
+      ),
     );
     $form['import_on_create'] = array(
       '#type' => 'checkbox',
@@ -266,7 +282,7 @@ class FeedsImporter extends FeedsConfigurable {
    * Reschedule if import period changes.
    */
   public function configFormSubmit(&$values) {
-    if ($this->config['import_period'] != $values['import_period']) {
+    if ($this->config['import_period'] != $values['import_period'] || $this->config['import_crontab'] != $values['import_crontab']) {
       feeds_reschedule($this->id);
     }
     parent::configFormSubmit($values);
