@@ -1,0 +1,89 @@
+diff --git a/feeds.module b/feeds.module
+index cba702d..d2fca25 100644
+--- a/feeds.module
++++ b/feeds.module
+@@ -9,6 +9,8 @@
+ define('FEEDS_REQUEST_TIME', time());
+ // Do not schedule a feed for refresh.
+ define('FEEDS_SCHEDULE_NEVER', -1);
++// Use crontab syntax for feeds scheduling.
++define('FEEDS_SCHEDULE_CRONTAB', -2);
+ // Never expire feed items.
+ define('FEEDS_EXPIRE_NEVER', -1);
+ // An object that is not persistent. Compare EXPORT_IN_DATABASE, EXPORT_IN_CODE.
+diff --git a/includes/FeedsImporter.inc b/includes/FeedsImporter.inc
+index 31be6b2..d686dd5 100644
+--- a/includes/FeedsImporter.inc
++++ b/includes/FeedsImporter.inc
+@@ -196,6 +196,7 @@ class FeedsImporter extends FeedsConfigurable {
+       'update' => 0,
+       'import_period' => 1800, // Refresh every 30 minutes by default.
+       'expire_period' => 3600, // Expire every hour by default, this is a hidden setting.
++      'import_crontab' => NULL, // Used if import_period is FEEDS_SCHEDULE_CRONTAB
+       'import_on_create' => TRUE, // Import on submission.
+       'process_in_background' => FALSE,
+     );
+@@ -239,7 +240,9 @@ class FeedsImporter extends FeedsConfigurable {
+     $period = array(
+       FEEDS_SCHEDULE_NEVER => t('Off'),
+       0 => t('As often as possible'),
+-    ) + $period;
++    ) + $period + array(
++      FEEDS_SCHEDULE_CRONTAB => t('Using crontab syntax'),
++    );
+     $form['import_period'] = array(
+       '#type' => 'select',
+       '#title' => t('Periodic import'),
+@@ -247,6 +250,19 @@ class FeedsImporter extends FeedsConfigurable {
+       '#description' => t('Choose how often a source should be imported periodically.') . $cron_required,
+       '#default_value' => $config['import_period'],
+     );
++    $form['import_crontab'] = array(
++      '#type' => 'textfield',
++      '#title' => t('Cron tab'),
++      '#description' => t('Unix-style crontab line with: <i>minutes</i> <i>hours</i> <i>day-of-month</i> <i>month</i> <i>day-of-week</i>. Read <a href=@man-crontab>more about crontab</a>.', array('@man-crontab' => url('http://linux.die.net/man/5/crontab'))),
++      '#default_value' => $config['import_crontab'],
++      '#states' => array(
++        'visible' => array(
++          'select[name="import_period"]' => array(
++            'value' => FEEDS_SCHEDULE_CRONTAB,
++          ),
++        ),
++      ),
++    );
+     $form['import_on_create'] = array(
+       '#type' => 'checkbox',
+       '#title' => t('Import on submission'),
+@@ -266,7 +282,7 @@ class FeedsImporter extends FeedsConfigurable {
+    * Reschedule if import period changes.
+    */
+   public function configFormSubmit(&$values) {
+-    if ($this->config['import_period'] != $values['import_period']) {
++    if ($this->config['import_period'] != $values['import_period'] || $this->config['import_crontab'] != $values['import_crontab']) {
+       feeds_reschedule($this->id);
+     }
+     parent::configFormSubmit($values);
+diff --git a/includes/FeedsSource.inc b/includes/FeedsSource.inc
+index 4117925..d9906f8 100644
+--- a/includes/FeedsSource.inc
++++ b/includes/FeedsSource.inc
+@@ -293,13 +293,18 @@ class FeedsSource extends FeedsConfigurable {
+     $job = array(
+       'type' => $this->id,
+       'id' => $this->feed_nid,
+-      'period' => $period,
+       'periodic' => TRUE,
+     );
+     if ($period == FEEDS_SCHEDULE_NEVER) {
+       JobScheduler::get('feeds_source_import')->remove($job);
+     }
+     elseif ($this->progressImporting() === FEEDS_BATCH_COMPLETE) {
++      if ($period == FEEDS_SCHEDULE_CRONTAB) {
++        $job['crontab'] = $this->importer->config['import_crontab'];
++      }
++      else {
++        $job['period'] = $period;
++      }
+       JobScheduler::get('feeds_source_import')->set($job);
+     }
+     else {
