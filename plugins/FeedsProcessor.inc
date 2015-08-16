@@ -302,9 +302,9 @@ abstract class FeedsProcessor extends FeedsPlugin {
       );
     }
     if (empty($messages)) {
-      $messages[] = array(
-        'message' => t('There are no new @entities.', array('@entities' => strtolower($info['label plural']))),
-      );
+//      $messages[] = array(
+//        'message' => t('There are no new @entities.', array('@entities' => strtolower($info['label plural']))),
+//      );
     }
     foreach ($messages as $message) {
       drupal_set_message($message['message']);
